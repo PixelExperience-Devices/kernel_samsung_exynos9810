@@ -15,7 +15,7 @@ obj-vdso-c := $(addprefix $(obj)/, $(obj-vdso-c))
 obj-vdso   := $(obj-vdso-c) $(obj-vdso-s)
 
 ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
-		--build-id=sha1 -n -T
+		-Bsymbolic --build-id=sha1 -n -T
 
 ccflags-y += $(call cc-option, -fno-whole-program)
 ccflags-y := -fno-common -fno-builtin -fno-stack-protector
