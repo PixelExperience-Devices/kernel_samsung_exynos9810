@@ -14,7 +14,7 @@ obj-vdso-s := $(addprefix $(obj)/, $(obj-vdso-s))
 obj-vdso-c := $(addprefix $(obj)/, $(obj-vdso-c))
 obj-vdso   := $(obj-vdso-c) $(obj-vdso-s)
 
-ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
+ldflags-y := -shared -soname=linux-vdso.so.1 --hash-style=sysv \
 		-Bsymbolic --build-id=sha1 -n -T
 
 ccflags-y += $(call cc-option, -fno-whole-program)
