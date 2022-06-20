@@ -565,7 +565,7 @@ static int write_packet(struct usb_device *udev,
 			       0,	/* index */
 			       buf,	/* buffer */
 			       size,
-			       1000);
+			       HZ);
 
 	kfree(buf);
 	return ret;
@@ -597,7 +597,7 @@ static int read_packet(struct usb_device *udev,
 			       0,	/* index */
 			       buf,	/* buffer */
 			       size,
-			       1000);
+			       HZ);
 
 	if (ret >= 0)
 		memcpy(registers, buf, size);
@@ -690,10 +690,6 @@ static int submit_urbs(struct camera_data *cam)
 		if (!urb) {
 			for (j = 0; j < i; j++)
 				usb_free_urb(cam->sbuf[j].urb);
-			for (j = 0; j < NUM_SBUF; j++) {
-				kfree(cam->sbuf[j].data);
-				cam->sbuf[j].data = NULL;
-			}
 			return -ENOMEM;
 		}
 
@@ -860,13 +856,15 @@ static int cpia2_usb_probe(struct usb_interface *intf,
 	ret = set_alternate(cam, USBIF_CMDONLY);
 	if (ret < 0) {
 		ERR("%s: usb_set_interface error (ret = %d)\n", __func__, ret);
-		goto alt_err;
+		kfree(cam);
+		return ret;
 	}
 
 
 	if((ret = cpia2_init_camera(cam)) < 0) {
 		ERR("%s: failed to initialize cpia2 camera (ret = %d)\n", __func__, ret);
-		goto alt_err;
+		kfree(cam);
+		return ret;
 	}
 	LOG("  CPiA Version: %d.%02d (%d.%d)\n",
 	       cam->params.version.firmware_revision_hi,
@@ -886,14 +884,11 @@ static int cpia2_usb_probe(struct usb_interface *intf,
 	ret = cpia2_register_camera(cam);
 	if (ret < 0) {
 		ERR("%s: Failed to register cpia2 camera (ret = %d)\n", __func__, ret);
-		goto alt_err;
+		kfree(cam);
+		return ret;
 	}
 
 	return 0;
-
-alt_err:
-	cpia2_deinit_camera_struct(cam, intf);
-	return ret;
 }
 
 /******************************************************************************
