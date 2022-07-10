@@ -16,4 +16,7 @@ ifeq ($(CONFIG_MALI_THEX),y)
 	ifeq ($(CONFIG_MALI_BIFROST_R37P0),y)
 		obj-y += bv_r37p0/
 	endif
+	ifeq ($(CONFIG_MALI_BIFROST_R38P0),y)
+		obj-y += bv_r38p0/
+	endif
 endif
