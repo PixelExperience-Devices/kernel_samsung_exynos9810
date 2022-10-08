@@ -456,6 +456,34 @@ void decon_set_black_window(struct decon_device *decon)
 	decon_reg_update_req_window(decon->id, decon->dt.dft_win);
 }
 
+void decon_set_color_window(struct decon_device *decon, u32 color)
+{
+	struct decon_window_regs win_regs;
+	struct decon_lcd *lcd = decon->lcd_info;
+
+	memset(&win_regs, 0, sizeof(struct decon_window_regs));
+	win_regs.wincon = wincon(0x8, 0xFF, 0xFF, 0xFF, DECON_BLENDING_NONE,
+			decon->dt.dft_win);
+	win_regs.start_pos = win_start_pos(0, 0);
+	win_regs.end_pos = win_end_pos(0, 0, lcd->xres, lcd->yres);
+	decon_info("xres %d yres %d win_start_pos %x win_end_pos %x\n",
+			lcd->xres, lcd->yres, win_regs.start_pos,
+			win_regs.end_pos);
+	win_regs.colormap = color;
+	win_regs.pixel_count = lcd->xres * lcd->yres;
+	win_regs.whole_w = lcd->xres;
+	win_regs.whole_h = lcd->yres;
+	win_regs.offset_x = 0;
+	win_regs.offset_y = 0;
+	decon_info("pixel_count(%d), whole_w(%d), whole_h(%d), x(%d), y(%d)\n",
+			win_regs.pixel_count, win_regs.whole_w,
+			win_regs.whole_h, win_regs.offset_x,
+			win_regs.offset_y);
+	decon_reg_set_window_control(decon->id, decon->dt.dft_win,
+			&win_regs, true);
+	decon_reg_update_req_window(decon->id, decon->dt.dft_win);
+}
+
 int decon_tui_protection(bool tui_en)
 {
 	int ret = 0;
@@ -1839,15 +1867,20 @@ static int __decon_update_regs(struct decon_device *decon, struct decon_reg_data
 	}
 
 #if defined(CONFIG_EXYNOS_CONTENT_PATH_PROTECTION)
+	decon_systrace(decon, 'C', "protected_content", 1);
 	decon_set_protected_content(decon, regs);
+	decon_systrace(decon, 'C', "protected_content", 0);
 #endif
 
 #if defined(CONFIG_EXYNOS_AFBC)
+	decon_systrace(decon, 'C', "set_afbc_recovery", 1);
 	decon_set_afbc_recovery_time(decon);
+	decon_systrace(decon, 'C', "set_afbc_recovery", 0);
 #endif
 
 	decon_reg_all_win_shadow_update_req(decon->id);
 	decon_to_psr_info(decon, &psr);
+	decon_systrace(decon, 'C', "decon_reg_start", 1);
 	if (decon_reg_start(decon->id, &psr) < 0) {
 #if defined(CONFIG_EXYNOS_COMMON_PANEL) || defined(CONFIG_EXYNOS_MASS_PANEL)
 		if (decon_is_bypass(decon)) {
@@ -1862,6 +1895,7 @@ static int __decon_update_regs(struct decon_device *decon, struct decon_reg_data
 #endif
 		BUG();
 	}
+	decon_systrace(decon, 'C', "decon_reg_start", 0);
 
 #if defined(CONFIG_EXYNOS_COMMON_PANEL) || defined(CONFIG_EXYNOS_MASS_PANEL)
 trigger_done:
@@ -2173,13 +2207,19 @@ video_emul_check_done:
 
 	decon_check_used_dpp(decon, regs);
 
+	decon_systrace(decon, 'C', "decon_update_vgf", 1);
 	decon_update_vgf_info(decon, regs, true);
+	decon_systrace(decon, 'C', "decon_update_vgf", 0);
 
+	decon_systrace(decon, 'C', "decon_update_hdr", 1);
 	decon_update_hdr_info(decon, regs);
+	decon_systrace(decon, 'C', "decon_update_hdr", 0);
 
+	decon_systrace(decon, 'C', "decon_update_bts", 1);
 	/* add calc and update bw : cur > prev */
 	decon->bts.ops->bts_calc_bw(decon, regs);
 	decon->bts.ops->bts_update_bw(decon, regs, 0);
+	decon_systrace(decon, 'C', "decon_update_bts", 0);
 
 	DPU_EVENT_LOG_WINCON(&decon->sd, regs);
 
@@ -4088,7 +4128,7 @@ static void decon_shutdown(struct platform_device *pdev)
 		return;
 	}
 
-	decon_info("%s + state:%d\n", __func__, decon->state);
+	decon_info("%s + decon%d state:%d\n", __func__, decon->id, decon->state);
 	DPU_EVENT_LOG(DPU_EVT_DECON_SHUTDOWN, &decon->sd, ktime_set(0, 0));
 
 	if (decon->dt.psr_mode == DECON_MIPI_COMMAND_MODE)
