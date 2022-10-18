@@ -127,6 +127,11 @@ union z_erofs_onlinepage_converter {
 	unsigned long *v;
 };
 
+static inline void bio_set_dev(struct bio *bio, struct block_device *bdev)
+{
+        bio->bi_bdev = bdev;
+}
+
 static inline unsigned int z_erofs_onlinepage_index(struct page *page)
 {
 	union z_erofs_onlinepage_converter u;
