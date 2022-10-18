@@ -218,22 +218,6 @@ typedef struct timespec64	sdfat_timespec_t;
 typedef struct timespec		sdfat_timespec_t;
 #endif
 
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
-
-#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0) */
-/*
- * sb->s_flags.  Note that these mirror the equivalent MS_* flags where
- * represented in both.
- */
-#define SB_RDONLY	1	/* Mount read-only */
-#define SB_NODIRATIME	2048	/* Do not update directory access times */
-static inline bool sb_rdonly(const struct super_block *sb)
-{
-	return sb->s_flags & MS_RDONLY;
-}
-#endif
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	/* EMPTY */
 #else
