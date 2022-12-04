@@ -5,11 +5,14 @@
 # Heavily based on the vDSO Makefiles for other archs.
 #
 
-obj-vdso := note.o sigreturn.o vgettimeofday.o
+obj-vdso-s := note.o sigreturn.o
+obj-vdso-c := vgettimeofday.o
 
 # Build rules
-targets := $(obj-vdso) vdso.so vdso.so.dbg
-obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+targets := $(obj-vdso-s) $(obj-vdso-c) vdso.so vdso.so.dbg
+obj-vdso-s := $(addprefix $(obj)/, $(obj-vdso-s))
+obj-vdso-c := $(addprefix $(obj)/, $(obj-vdso-c))
+obj-vdso   := $(obj-vdso-c) $(obj-vdso-s)
 
 ldflags-y := -shared -soname=linux-vdso.so.1 --hash-style=sysv \
 		-Bsymbolic --build-id=sha1 -n -T
@@ -21,7 +24,10 @@ ccflags-y += $(DISABLE_LTO) $(DISABLE_SCS)
 
 # Force -O2 to avoid libgcc dependencies
 CFLAGS_REMOVE_vgettimeofday.o = -pg -Os
-CFLAGS_vgettimeofday.o = -O2 -fPIC -mcmodel=tiny
+CFLAGS_vgettimeofday.o = -O2 -fPIC
+ifneq ($(cc-name),clang)
+CFLAGS_vgettimeofday.o += -mcmodel=tiny
+endif
 
 # Disable gcov profiling for VDSO code
 GCOV_PROFILE := n
@@ -52,6 +58,19 @@ quiet_cmd_vdsosym = VDSOSYM $@
 
 include/generated/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
 	$(call if_changed,vdsosym)
+
+# Assembly rules for the .S files
+$(obj-vdso-s): %.o: %.S FORCE
+	$(call if_changed_dep,vdsoas)
+
+$(obj-vdso-c): %.o: %.c FORCE
+	$(call if_changed_dep,vdsocc)
+
+# Actual build commands
+quiet_cmd_vdsocc = VDSOC   $@
+      cmd_vdsocc = ${CC} $(c_flags) -c -o $@ $<
+quiet_cmd_vdsoas = VDSOA   $@
+      cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
 
 # Install commands for the unstripped file
 quiet_cmd_vdso_install = INSTALL $@
