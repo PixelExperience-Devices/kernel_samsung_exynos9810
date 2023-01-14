@@ -1778,7 +1778,7 @@ static void namespace_unlock(void)
 	if (likely(hlist_empty(&head)))
 		return;
 
-	synchronize_rcu_expedited();
+	synchronize_rcu();
 
 	group_pin_kill(&head);
 }
