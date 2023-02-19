@@ -170,7 +170,7 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 	struct cpufreq_policy *policy = sg_policy->policy;
 	int cpu;
 
-	if (sg_policy->next_freq == next_freq)
+	if (sugov_up_down_rate_limit(sg_policy, time, next_freq))
 		return;
 
 	if (sg_policy->next_freq == next_freq)
